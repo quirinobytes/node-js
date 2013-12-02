@@ -1,35 +1,61 @@
 /* KRNGET */
 var debug = true;
+var keepalive = false;
+var verbose = false;
 
-//marca o exato momento do inicio do processo, tipo para usar em um cronometro.
-var start = process.hrtime();
+console.log("KRNGET 0.1 || HTTP GET http://" + process.argv[2] + "/\n\n");
 
-//funcao de tempo gasto, para determinar quanto tempo levou para executar determinadas partes do processo.
-var elapsed_time = function(note){
-    var precision = 3; // 3 decimal places
-    var elapsed = process.hrtime(start)[1] / 1000000; // divide by a million to get nano to milli
-    console.log(process.hrtime(start)[0] + " s, " + elapsed.toFixed(precision) + " ms - " + note); // print message + time
-    start = process.hrtime(); // reset the timer
-}	
-
-
-console.log("KRNGET 0.1 Starting ... \n ARGV[2]=" + process.argv[2] + "\n\n");
+if (process.argv.indexOf("-v"))
+	verbose = true;
 
 var http = require ("http");
 var dateFormat = require('dateformat');
+var colors = require('colors');
 var now = new Date();
+var start = process.hrtime(); //marca o exato momento do inicio do processo, tipo para usar em um cronometro.
 
-var get = 	http.get("http://"+ process.argv[2] + "/", function(res) {
-  				//console.log("ARGV[1]=" + process.argv[2] + "\n Got response: " + res.statusCode);
-  				// console.log("\n\n>>> IMPRIMINDO response.headers >>> \n\n");
-  				 
-  				 console.log(now);
-  				 console.log(dateFormat(now,"hh:MM:ss dd/mm/yy "));
-  				 console.log(res.headers);
+if (keepalive)
+	var options = {  hostname: '',  port: 80,  path: '/',  method: 'GET'};
+else
+	var options = {  hostname: '',  port: 80,  path: '/',  method: 'GET',  agent: false};
+
+options[0] = process.argv[2];
+
+
+var get = 	http.get(options, function(res) {
+  				if (verbose) console.log("LOG: " + dateFormat(now,"hh:MM:ss dd/mm/yy"));
+  				if (verbose) process.stdout.write(("Got response: " + res.statusCode + " em: ").blue); 
+  				if (verbose) elapsed_time();
+  				
+  				console.log("Connection: " + res.headers.connection + "\n");
 				
-				if (debug)  elapsed_time("\n\nFinalizou a recepção dos dados, mas nao fechou a conexao por causa do keep-alive");
+				
 
 			}).on('error', function(e) {
-					console.log("Got error: " + e.message);
-			});
+				console.log("LOG: " + dateFormat(now,"hh:MM:ss dd/mm/yy"));
+				console.log(("Got error: " + e.message).red);
+			
+			}).on('close', function(socket) {
+				if (debug)  elapsed_time(" >> Tempo gasto para finalizar a conexao TCP/IP devido ao keep-alive (TRUE/FALSE)");
+				if (debug)  console.log(("Programa encerrado\n").yellow);
+			
+			}).on('data' , function(chunk) {
+    			console.log(("BODY: " + chunk).blue );
+  			});
 
+
+
+//funcao de Tempo Gasto, para determinar quanto tempo levou para executar determinadas partes do processo ou requisição, basta chamar elapsed_time("Com Nota ou sem");
+var elapsed_time = function(note){
+    var precision = 0; // 2 decimal places
+    var elapsed = process.hrtime(start)[1] ; // divide by a million to get nano to milli
+    if (note) {
+    	//console.log(process.hrtime(start)[1] /1000000);
+    	//console.log("elapsed"+ elapsed);
+    	console.log((process.hrtime(start)[0] + "," + elapsed.toFixed(precision) + " s ").green + note.blue); // print time
+    }else{
+    	//console.log("Elapsed"+ elapsed);
+    	console.log((process.hrtime(start)[0] + "," + elapsed.toFixed(precision) + " s ").green); // print time + message
+    }
+    start = process.hrtime(); // reset the timer
+}	

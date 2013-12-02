@@ -1,38 +1,45 @@
 /* KRNGET */
-var debug = true;
-var keepalive = false;
-var verbose = false;
-
-console.log("KRNGET 0.1 || HTTP GET http://" + process.argv[2] + "/\n\n");
-
-if (process.argv.indexOf("-v"))
-	verbose = true;
-
 var http = require ("http");
 var dateFormat = require('dateformat');
 var colors = require('colors');
+
+var debug = true;
+var keepalive = true;
+var verbose = true;
+
 var now = new Date();
 var start = process.hrtime(); //marca o exato momento do inicio do processo, tipo para usar em um cronometro.
 
+console.log("KRNGET 0.1");
+
+console.log("\n\n" + dateFormat(now,"hh:MM:ss dd/mm/yy") + " || GET http://" + process.argv[2] + "/");
+// if (process.argv.indexOf("-v"))
+// 	verbose = true;
+
+
 if (keepalive)
-	var options = {  hostname: '',  port: 80,  path: '/',  method: 'GET'};
+	var options = {  hostname: '',  port: 80,  path: '/',  method: 'GET', connection: 'keep-alive'}; //usar kee-alive, alguns servidores nao respeitam
 else
-	var options = {  hostname: '',  port: 80,  path: '/',  method: 'GET',  agent: false};
-
-options[0] = process.argv[2];
+	var options = {  hostname: '',  port: 80,  path: '/',  method: 'GET', agent: false}; //nao usar kee-alive, alguns servidores nao respeitam
 
 
-var get = 	http.get(options, function(res) {
-  				if (verbose) console.log("LOG: " + dateFormat(now,"hh:MM:ss dd/mm/yy"));
+options['hostname'] = process.argv[2];
+
+if (verbose) console.log(options);
+
+
+var result = 	http.get(options, function(res) {
+  				if (verbose) console.log("\nLOG: " + dateFormat(now,"hh:MM:ss dd/mm/yy"));
   				if (verbose) process.stdout.write(("Got response: " + res.statusCode + " em: ").blue); 
   				if (verbose) elapsed_time();
   				
-  				console.log("Connection: " + res.headers.connection + "\n");
+  				console.log("Headers");
+          console.log(res.headers);
 				
 				
 
 			}).on('error', function(e) {
-				console.log("LOG: " + dateFormat(now,"hh:MM:ss dd/mm/yy"));
+				
 				console.log(("Got error: " + e.message).red);
 			
 			}).on('close', function(socket) {
@@ -41,8 +48,9 @@ var get = 	http.get(options, function(res) {
 			
 			}).on('data' , function(chunk) {
     			console.log(("BODY: " + chunk).blue );
-  			});
-
+  		}).on("socket", function (socket) { //tratando quando o socket chegar da conexao, faz  remover o agent, ou seja para ficar keep-alive eternity
+          socket.emit("agentRemove");
+      });
 
 
 //funcao de Tempo Gasto, para determinar quanto tempo levou para executar determinadas partes do processo ou requisição, basta chamar elapsed_time("Com Nota ou sem");

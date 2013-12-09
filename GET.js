@@ -49,21 +49,24 @@ var result = 	http.get(options, function(res) {
 			}).on('data' , function(chunk) {
     			console.log(("BODY: " + chunk).blue );
   		}).on("socket", function (socket) { //tratando quando o socket chegar da conexao, faz  remover o agent, ou seja para ficar keep-alive eternity
-          socket.emit("agentRemove");
+          if (keepalive){ 
+            socket.emit("agentRemove"); // mas logico somente se keepalive == true
+            console.log("socket.emit(agentRemove);");
+          }
+          //socket.emit("agentRemove");
+      }).on("disconnect",function(){
+            console.log("Socket disconnected!");
       });
 
 
 //funcao de Tempo Gasto, para determinar quanto tempo levou para executar determinadas partes do processo ou requisição, basta chamar elapsed_time("Com Nota ou sem");
 var elapsed_time = function(note){
-    var precision = 0; // 2 decimal places
+    var precision = 0; // 2 precisao decimal
     var elapsed = process.hrtime(start)[1] ; // divide by a million to get nano to milli
     if (note) {
-    	//console.log(process.hrtime(start)[1] /1000000);
-    	//console.log("elapsed"+ elapsed);
-    	console.log((process.hrtime(start)[0] + "," + elapsed.toFixed(precision) + " s ").green + note.blue); // print time
+    	console.log((process.hrtime(start)[0] + "," + elapsed.toFixed(precision) + " s ").green + note.blue);
     }else{
-    	//console.log("Elapsed"+ elapsed);
-    	console.log((process.hrtime(start)[0] + "," + elapsed.toFixed(precision) + " s ").green); // print time + message
+    	console.log((process.hrtime(start)[0] + "," + elapsed.toFixed(precision) + " s ").green);
     }
     start = process.hrtime(); // reset the timer
-}	
+}
